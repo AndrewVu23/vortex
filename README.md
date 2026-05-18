@@ -119,7 +119,7 @@ make install
 ```sh
 ../configure --xlen=64 --tooldir=$HOME/tools
 ```
-- Sourcing "./ci/toolchain_env.sh" is required everytime you start a new terminal. we recommend adding "source <build-path>/ci/toolchain_env.sh" to your ~/.bashrc file to automate the process at login.
+- Sourcing "./ci/toolchain_env.sh" is required every time you start a new terminal. We recommend adding "source <build-path>/ci/toolchain_env.sh" to your ~/.bashrc file to automate the process at login.
 ```sh
 echo "source <build-path>/ci/toolchain_env.sh" >> ~/.bashrc
 ```

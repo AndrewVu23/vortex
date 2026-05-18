@@ -12,7 +12,7 @@ Vortex uses the SIMT (Single Instruction, Multiple Threads) execution model with
   - A logical cluster of threads
   - Each thread in a warp execute the same instruction
     - The PC is shared; maintain thread mask for Writeback
-  - Warp's execution is time-multiplexed at log steps
+  - Warp's execution is time-multiplexed at lock steps
     - Ex. warp 0 executes at cycle 0, warp 1 executes at cycle 1
 
 ### Vortex RISC-V ISA Extension

@@ -19,30 +19,30 @@
 using namespace vortex;
 
 // return file extension
-const char* vortex::fileExtension(const char* filepath) {
+const char *vortex::fileExtension(const char *filepath) {
   const char *ext = strrchr(filepath, '.');
   if (ext == NULL || ext == filepath)
     return "";
   return ext + 1;
 }
 
-void* vortex::aligned_malloc(size_t size, size_t alignment) {
+void *vortex::aligned_malloc(size_t size, size_t alignment) {
   // reserve margin for alignment and storing of unaligned address
-  assert((alignment & (alignment - 1)) == 0);   // Power of 2 alignment.
-  size_t margin = (alignment-1) + sizeof(void*);
+  assert((alignment & (alignment - 1)) == 0); // Power of 2 alignment.
+  size_t margin = (alignment - 1) + sizeof(void *);
   void *unaligned_addr = malloc(size + margin);
-  void **aligned_addr = (void**)((uintptr_t)(((uint8_t*)unaligned_addr) + margin) & ~(alignment-1));
+  void **aligned_addr = (void **)((uintptr_t)(((uint8_t *)unaligned_addr) + margin) & ~(alignment - 1));
   aligned_addr[-1] = unaligned_addr;
   return aligned_addr;
 }
 
 void vortex::aligned_free(void *ptr) {
-  // retreive the stored unaligned address and use it to free the allocation
-  void* unaligned_addr = ((void**)ptr)[-1];
+  // retrieve the stored unaligned address and use it to free the allocation
+  void *unaligned_addr = ((void **)ptr)[-1];
   free(unaligned_addr);
 }
 
-std::string vortex::resolve_file_path(const std::string& filename, const std::string& searchPaths) {
+std::string vortex::resolve_file_path(const std::string &filename, const std::string &searchPaths) {
   std::ifstream ifs(filename);
   if (!ifs) {
     std::stringstream ss(searchPaths);

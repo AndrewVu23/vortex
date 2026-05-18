@@ -11,15 +11,15 @@ If you are associated with Georgia Tech (or related workshops) you can use CRNCH
 
 **The Rogues Gallery (RG)**: new concept focused on developing our understanding of next-generation hardware with a focus on unorthodox and uncommon technologies. **RG** will acquire new and unique hardware (ie, the aforementioned “*rogues*”) from vendors, research labs, and startups and make this hardware available to students, faculty, and industry collaborators within a managed data center environment
 
-## Why are the Rouges Important?
+## Why are the Rogues Important?
 
-By exposing students and researchers to this set of unique hardware, we hope to foster cross-cutting discussions about hardware designs that will drive future *performance improvements in computing long after the Moore’s Law era of “cheap transistors” ends*. Specifically, the Rouges Gallery contains FPGA's which can be synthesized into Vortex hardware.
+By exposing students and researchers to this set of unique hardware, we hope to foster cross-cutting discussions about hardware designs that will drive future *performance improvements in computing long after the Moore’s Law era of “cheap transistors” ends*. Specifically, the Rogues Gallery contains FPGA's which can be synthesized into Vortex hardware.
 
-## How is the Rouges Gallery Funded?
+## How is the Rogues Gallery Funded?
 
 Rogues Gallery testbed is primarily supported by the National Science Foundation (NSF) under NSF Award Number [#2016701](https://www.nsf.gov/awardsearch/showAward?AWD_ID=2016701&HistoricalAwards=false)
 
-## Rouges Gallery Documentation
+## Rogues Gallery Documentation
 
 You can read about RG in more detail on its official documentation [page](https://gt-crnch-rg.readthedocs.io/en/main/index.html#).
 
@@ -27,18 +27,18 @@ You can listen to a talk about RG [here](https://mediaspace.gatech.edu/media/Jef
 
 [CRNCH Summit 2023](https://github.com/gt-crnch/crnch-summit-2023/tree/main)
 
-## Request Access for Rouges Gallery
+## Request Access for Rogues Gallery
 
-You should use [this form](https://crnch-rg.cc.gatech.edu/request-rogues-gallery-access/) to request access to RG’s reconfigurable computing (vortex fpga) resources. You should receive an email with your ticket item being created. Once it gets processed, you should get an email confirmed your access has been granted. It might take some time to get processed.
+You should use [this form](https://crnch-rg.cc.gatech.edu/request-rogues-gallery-access/) to request access to RG’s reconfigurable computing (vortex fpga) resources. You should receive an email with your ticket item being created. Once it gets processed, you should get an email confirming your access has been granted. It might take some time to get processed.
 
-## How to Access Rouges Gallery?
-There are two methods of accessing CRNCH's Rouges Gallery
+## How to Access Rogues Gallery?
+There are two methods of accessing CRNCH's Rogues Gallery
 1) Web-based GUI: [rg-ood.crnch.gatech.edu](http://rg-ood.crnch.gatech.edu/)
 2) SSH: `ssh <your-gt-username>@rg-login.crnch.gatech.edu`
 
 
 ## Where should I keep my files?
-The CRNCH servers have a folder called `USERSCRATCH` which can be found in your home directory: `echo $HOME`. You should keep all your files in this folder since it is available across all the Rouges Gallery Nodes.
+The CRNCH servers have a folder called `USERSCRATCH` which can be found in your home directory: `echo $HOME`. You should keep all your files in this folder since it is available across all the Rogues Gallery Nodes.
 
 ## **What Machines are Available in the Rogues Gallery?**
 
@@ -141,7 +141,7 @@ Synthesis for Intel (Altera) Boards
 
 ### OPAE Build
 
-The FPGA has to following configuration options:
+The FPGA has the following configuration options:
 - DEVICE_FAMILY=arria10 | stratix10
 - NUM_CORES=#n
 
@@ -156,12 +156,12 @@ Setting TARGET=ase will build the project for simulation using Intel ASE.
 
 ### OPAE Build Configuration
 
-The hardware configuration file `/hw/rtl/VX_config.vh` defines all the hardware parameters that can be modified when build the processor.For example, have the following parameters that can be configured:
+The hardware configuration file `/hw/rtl/VX_config.vh` defines all the hardware parameters that can be modified when building the processor. For example, have the following parameters that can be configured:
 - `NUM_WARPS`:   Number of warps per cores
 - `NUM_THREADS`: Number of threads per warps
 - `PERF_ENABLE`: enable the use of all profile counters
 
-You configure the syntesis build from the command line:
+You configure the synthesis build from the command line:
 
     $ CONFIGS="-DPERF_ENABLE -DNUM_THREADS=8" make
 

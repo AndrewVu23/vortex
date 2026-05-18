@@ -2,7 +2,7 @@
 
 ### RTL Simulation
 
-[Verilator](https://www.veripool.org/projects/verilator/wiki) is a Verilog/SystemVerilog design simulator that converts the Verilog HDL to single- or mult-ithreaded C++/SystemC code to perform the design simulation. An installation guide for Verilator is located [here.](https://www.veripool.org/projects/verilator/wiki/Installing)
+[Verilator](https://www.veripool.org/projects/verilator/wiki) is a Verilog/SystemVerilog design simulator that converts the Verilog HDL to single- or multi-threaded C++/SystemC code to perform the design simulation. An installation guide for Verilator is located [here.](https://www.veripool.org/projects/verilator/wiki/Installing)
 
 ### Cycle-Approximate Simulation
 
@@ -28,7 +28,7 @@ Running tests under specific drivers (rtlsim,simx,fpga) is done using the script
 - *Driver* - used to specify which driver to run the Vortex simulation (either rtlsim, opae, xrt, simx).
 - *Debug* - used to enable debug mode for the Vortex simulation.
 - *Perf* - used to enable the detailed performance counters within the Vortex simulation.
-- *App* - used to specify which test/benchmark to run in the Vortex simulation. The main choices are vecadd, sgemm, basic, demo, and dogfood. Other tests/benchmarks are located in the `/benchmarks/opencl` folder though not all of them work wit the current version of Vortex.
+- *App* - used to specify which test/benchmark to run in the Vortex simulation. The main choices are vecadd, sgemm, basic, demo, and dogfood. Other tests/benchmarks are located in the `/benchmarks/opencl` folder though not all of them work with the current version of Vortex.
 - *Args* - used to pass additional arguments to the application.
 
 ### Configuring Cache Sizes

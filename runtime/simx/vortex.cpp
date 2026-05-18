@@ -273,7 +273,7 @@ public:
     //   phy_to_virt_map(0, dest_addr, 0);
     // }
     DBGPRINT("  [RT:upload] Upload data to vAddr = 0x%lx (pAddr=0x%lx)\n", dest_addr, pAddr);
-    dest_addr = pAddr; // Overwirte
+    dest_addr = pAddr; // Overwrite
 #endif
 
     ram_.enable_acl(false);
@@ -296,7 +296,7 @@ public:
 #ifdef VM_ENABLE
     uint64_t pAddr = page_table_walk(src_addr);
     DBGPRINT("  [RT:download] Download data to vAddr = 0x%lx (pAddr=0x%lx)\n", src_addr, pAddr);
-    src_addr = pAddr; // Overwirte
+    src_addr = pAddr; // Overwrite
 #endif
 
     ram_.enable_acl(false);
@@ -319,8 +319,8 @@ public:
     uint64_t pAddr_src = page_table_walk(src_addr);
     uint64_t pAddr_dest = page_table_walk(dest_addr);
     DBGPRINT("  [RT:copy] Copy data from vAddr = 0x%lx (pAddr=0x%lx) to vAddr = 0x%lx (pAddr=0x%lx)\n", src_addr, pAddr_src, dest_addr, pAddr_dest);
-    src_addr = pAddr_src;  
-    dest_addr = pAddr_dest; 
+    src_addr = pAddr_src;
+    dest_addr = pAddr_dest;
 #endif
     ram_.enable_acl(false);
     ram_.copy(dest_addr, src_addr, size);
@@ -470,7 +470,7 @@ public:
     return 0;
   }
 
-  // Return value in in ptbr
+  // Return value in ptbr
   uint64_t get_base_ppn() {
     return processor_.get_base_ppn();
   }

@@ -24,7 +24,7 @@
 // arrival and are dequeued in the same order.
 // Each entry has a next pointer to the next entry pending for the same cache line.
 //
-// During the fill request, the MSHR will dequue the MSHR entry at the fill_id location
+// During the fill request, the MSHR will dequeue the MSHR entry at the fill_id location
 // which represents the first request in the pending list that initiated the memory fill.
 //
 // The dequeue response directly follows the fill request and will release

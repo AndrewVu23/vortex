@@ -11,13 +11,13 @@ The Vortex Cache Sub-system has the following main properties:
 ![Image of Cache Hierarchy](./assets/img/cache_microarchitecture.png)
 
 The Vortex cache is comprised of multiple parallel banks. It is comprised of the following modules:
-- **Bank request dispatch crossbar**: assigns a bank to incoming requests and resolve collision using stalls.
+- **Bank request dispatch crossbar**: assigns a bank to incoming requests and resolves collision using stalls.
 - **Bank response merge crossbar**: merges result from banks and forward to the core response.
 - **Memory request multiplexer**: arbitrates bank memory requests
 - **Memory response demultiplexer**: forwards memory response to the corresponding bank.
 - **Flush Unit**: performs tag memory initialization.
 
-Incoming requests entering the cache are sent to a dispatch crossbar that select the corresponding bank for each request, resolving bank collisions with stalls. The result output of each bank is merge back into outgoing response port via merger crossbar. Each bank intergates a non-blocking pipeline with a local Miss Status Holding Register (MSHR) to reduce the miss rate. The bank pipeline consists of the following stages:
+Incoming requests entering the cache are sent to a dispatch crossbar that select the corresponding bank for each request, resolving bank collisions with stalls. The result output of each bank is merged back into outgoing response port via merger crossbar. Each bank integrates a non-blocking pipeline with a local Miss Status Holding Register (MSHR) to reduce the miss rate. The bank pipeline consists of the following stages:
 
 - **Schedule**: Selects the next request into the pipeline from the incoming core request, memory fill, or the MSHR entry, with priority given to the latter.
 - **Tag Access**: single-port read/write access to the tag store.

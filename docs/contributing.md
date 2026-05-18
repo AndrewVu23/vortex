@@ -18,7 +18,7 @@ However, contributions are strongly encouraged and keep the project moving forwa
 3. Make your changes on the new branch in your fork. You may create as many commits as you need, which might be common if you are making multiple iterations
 4. Since you are the owner of your fork, you have full permissions to push commits to your fork
 4. When you are satisfied with the changes on your fork, you can open a PR from your fork using the online interface
-5. If you recently made a push, you will get automatically get a prompt on Github online to create a PR, which you can press
+5. If you recently made a push, you will automatically get a prompt on Github online to create a PR, which you can press
 6. Otherwise, you can go to your fork on Github online and manually create a PR (todo)
 (todo): how to name and format your PR, what information you should add to the PR, does not need to be too strict if you are attending the weekly meetings*
 7. Github uses the following semantics: `base repository` gets the changes from your `head repository`

@@ -2,8 +2,8 @@
 
 ## Testing changes to the RTL or simulator GPU driver.
 
-The Blackbox utility script will not pick up your changes if the h/w configuration is the same as during teh last run.
-To force the utility to build the driver, you need pass the --rebuild=1 option when running tests.
+The Blackbox utility script will not pick up your changes if the h/w configuration is the same as during the last run.
+To force the utility to build the driver, you need to pass the --rebuild=1 option when running tests.
 Using --rebuild=0 will prevent the rebuild even if the h/w configuration is different from last run.
 
     $ ./ci/blackbox.sh --driver=simx --app=demo --rebuild=1
@@ -34,7 +34,7 @@ The recommended method to enable debugging is to pass the `--debug` flag to `bla
     $ ./ci/blackbox.sh --driver=rtlsim --app=demo --debug=1
 
 A debug trace `run.log` is generated in the current directory during the program execution. The trace includes important states of the simulated processor (memory, caches, pipeline, stalls, etc..). A waveform trace `trace.vcd` is also generated in the current directory during the program execution.
-By default all library modules unde the /libs/ folder are excluded from the trace to reduce the waveform file size, you can chnage that behavoir by either explicitly commenting out `TRACING_OFF`/`TRACING_ON` inside a lib module source (e.g. VX_stream_buffer.sv) or simply enabling a full trace by defining TRACING_ALL as follows.
+By default all library modules under the /libs/ folder are excluded from the trace to reduce the waveform file size, you can change that behavoir by either explicitly commenting out `TRACING_OFF`/`TRACING_ON` inside a lib module source (e.g. VX_stream_buffer.sv) or simply enabling a full trace by defining TRACING_ALL as follows.
 
     // Debugging the demo program with rtlsim in full tracing mode
     $ CONFIGS="-DTRACING_ALL" ./ci/blackbox.sh --driver=rtlsim --app=demo --debug=1
@@ -71,4 +71,4 @@ We provide a trace sanitizer tool under ./hw/scripts/trace_csv.py that you can u
 
 The first column in the CSV trace is UUID (universal unique identifier) of the instruction and the content is sorted by the UUID.
 You can use the UUID to trace the same instruction running on either the RTL hw or SimX simulator.
-This can be very effective if you want to use SimX to debugging your RTL hardware by comparing CSV traces.
+This can be very effective if you want to use SimX to debug your RTL hardware by comparing CSV traces.
