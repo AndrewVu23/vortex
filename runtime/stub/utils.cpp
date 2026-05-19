@@ -608,10 +608,6 @@ extern int vx_dump_perf(vx_device_h hdevice, FILE* stream) {
       return err;
     });
 
-    // Calculate and print warp efficiency
-    int warp_efficiency = calcAvgPercent(total_active_threads, total_issued_warps * threads_per_warp);
-    fprintf(stream, "PERF: Warp Efficiency=%d%%\n", warp_efficiency);
-
     // Query total_issued_warps for the core
     uint64_t total_issued_warps_per_core;
     CHECK_ERR(vx_mpm_query(hdevice, VX_CSR_MPM_TOTAL_ISSUED_WARPS, core_id, &total_issued_warps_per_core), {
@@ -624,7 +620,7 @@ extern int vx_dump_perf(vx_device_h hdevice, FILE* stream) {
       return err;
     });
 
-    // Print total_issued_warps and total_active_threads
+    // Print per-core Warp Efficiency
     if (num_cores > 1) {
       // Calculate and print warp efficiency
       int warp_efficiency = calcAvgPercent(total_active_threads_per_core, total_issued_warps_per_core * threads_per_warp);
@@ -634,8 +630,7 @@ extern int vx_dump_perf(vx_device_h hdevice, FILE* stream) {
     // Accumulate totals for all cores
     total_issued_warps += total_issued_warps_per_core;
     total_active_threads += total_active_threads_per_core;
-  }
-  break;
+  } break;
     default:
       break;
     }
@@ -726,6 +721,14 @@ extern int vx_dump_perf(vx_device_h hdevice, FILE* stream) {
       fprintf(stream, "PERF: memory latency=%d cycles\n", mem_avg_lat);
       fprintf(stream, "PERF: memory bank stalls=%ld (utilization=%d%%)\n", mem_bank_stalls, mem_bank_utilization);
     }
+  } break;
+  case VX_DCR_MPM_CLASS_3: {
+    uint64_t threads_per_warp;
+    CHECK_ERR(vx_dev_caps(hdevice, VX_CAPS_NUM_THREADS, &threads_per_warp), {
+      return err;
+    });
+    int warp_efficiency = calcAvgPercent(total_active_threads, total_issued_warps * threads_per_warp);
+    fprintf(stream, "PERF: Warp Efficiency=%d%%\n", warp_efficiency);
   } break;
   default:
     break;
