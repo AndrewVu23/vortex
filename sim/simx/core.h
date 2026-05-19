@@ -43,7 +43,7 @@ class DCRS;
 
 class Core : public SimObject<Core> {
 public:
-  struct PerfStats {
+  struct PerfStats { // Defining the fields we are measuring
     uint64_t cycles;
     uint64_t instrs;
     uint64_t sched_idle;
@@ -69,7 +69,10 @@ public:
     uint64_t stores;
     uint64_t ifetch_latency;
     uint64_t load_latency;
+    uint64_t total_issued_warps;
+    uint64_t total_active_threads;
 
+    // Initialize at 0
     PerfStats()
       : cycles(0)
       , instrs(0)
@@ -84,6 +87,8 @@ public:
       , scrb_sfu(0)
       , scrb_csrs(0)
       , scrb_wctl(0)
+      , total_issued_warps(0)
+      , total_active_threads(0)
     #ifdef EXT_V_ENABLE
       , vinstrs(0)
       , scrb_vpu(0)

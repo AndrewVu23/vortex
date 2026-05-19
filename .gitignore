@@ -3,3 +3,5 @@
 *.cache
 *.code-workspace
 miscs/apptainer/vortex.sif
+breakdown
+tutorials
