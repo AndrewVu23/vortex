@@ -207,7 +207,7 @@ import VX_fpu_pkg::*;
                 if ((read_addr >= `VX_CSR_MPM_USER   && read_addr < (`VX_CSR_MPM_USER + 32))
                  || (read_addr >= `VX_CSR_MPM_USER_H && read_addr < (`VX_CSR_MPM_USER_H + 32))) begin
                     read_addr_valid_w = 1;
-                `ifdef PERF_ENABLE
+                `ifdef PERF_ENABLE // Enabling Perf Modeling
                     case (base_dcrs.mpm_class)
                     `VX_DCR_MPM_CLASS_CORE: begin
                         case (read_addr)
@@ -274,6 +274,13 @@ import VX_fpu_pkg::*;
                         `CSR_READ_64(`VX_CSR_MPM_MEM_LT, read_data_ro_w, sysmem_perf.mem.latency);
                         // PERF: coalescer
                         `CSR_READ_64(`VX_CSR_MPM_COALESCER_MISS, read_data_ro_w, sysmem_perf.coalescer.misses);
+                        default:;
+                        endcase
+                    end
+                    `VX_DCR_MPM_CLASS_3: begin // Custom Counters
+                        case (read_addr) // Exposing them in the CSR
+                        `CSR_READ_64(`VX_CSR_MPM_TOTAL_ISSUED_WARPS, read_data_ro_w, pipeline_perf.sched.total_issued_warps);
+                        `CSR_READ_64(`VX_CSR_MPM_TOTAL_ACTIVE_THREADS, read_data_ro_w, pipeline_perf.sched.total_active_threads);
                         default:;
                         endcase
                     end

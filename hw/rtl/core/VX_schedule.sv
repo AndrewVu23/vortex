@@ -415,8 +415,12 @@ module VX_schedule import VX_gpu_pkg::*; #(
     `RUNTIME_ASSERT(timeout_ctr < STALL_TIMEOUT, ("%t: *** %s timeout: stalled_warps=%b", $time, INSTANCE_ID, stalled_warps))
 
 `ifdef PERF_ENABLE
+
+    // Spawning perf registers
     reg [PERF_CTR_BITS-1:0] perf_sched_idles;
     reg [PERF_CTR_BITS-1:0] perf_sched_stalls;
+    reg [`PERF_CTR_BITS-1:0] perf_total_issued_warps;
+    reg [`PERF_CTR_BITS-1:0] perf_total_active_threads;
 
     wire schedule_idle = ~schedule_valid;
     wire schedule_stall = schedule_if.valid && ~schedule_if.ready;
@@ -425,14 +429,25 @@ module VX_schedule import VX_gpu_pkg::*; #(
         if (reset) begin
             perf_sched_idles  <= '0;
             perf_sched_stalls <= '0;
+            perf_total_issued_warps <= 0;
+            perf_total_active_threads <= 0;
         end else begin
             perf_sched_idles  <= perf_sched_idles + PERF_CTR_BITS'(schedule_idle);
             perf_sched_stalls <= perf_sched_stalls + PERF_CTR_BITS'(schedule_stall);
         end
+
+        // Increment logic whenever we fire a warp
+        if (schedule_if_fire) begin
+            perf_total_issued_warps <= perf_total_issued_warps + 1;
+            perf_total_active_threads <= perf_total_active_threads + $countones(schedule_if.data.tmask);
+        end
     end
 
+    // Since the registers are internal, we have to wire them to the outputs
     assign sched_perf.idles = perf_sched_idles;
     assign sched_perf.stalls = perf_sched_stalls;
+    assign sched_perf.total_issued_warps = perf_total_issued_warps;
+    assign sched_perf.total_active_threads = perf_total_active_threads;
 `endif
 
 `ifdef DBG_TRACE_PIPELINE
