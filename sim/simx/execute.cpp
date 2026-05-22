@@ -11,21 +11,21 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#include <iostream>
-#include <stdlib.h>
-#include <unistd.h>
-#include <math.h>
-#include <bitset>
-#include <climits>
-#include <sys/types.h>
-#include <sys/stat.h>
-#include <assert.h>
-#include <util.h>
-#include <rvfloats.h>
+#include "core.h"
 #include "emulator.h"
 #include "instr.h"
-#include "core.h"
 #include "types.h"
+#include <assert.h>
+#include <bitset>
+#include <climits>
+#include <iostream>
+#include <math.h>
+#include <rvfloats.h>
+#include <stdlib.h>
+#include <sys/stat.h>
+#include <sys/types.h>
+#include <unistd.h>
+#include <util.h>
 #ifdef EXT_V_ENABLE
 #include "processor_impl.h"
 #endif
@@ -47,9 +47,9 @@ inline int64_t check_boxing(int64_t a) {
   return nan_box(0x7fc00000); // NaN
 }
 
-void Emulator::fetch_registers(std::vector<reg_data_t>& out, uint32_t wid, uint32_t src_index, const RegOpd& reg) {
+void Emulator::fetch_registers(std::vector<reg_data_t> &out, uint32_t wid, uint32_t src_index, const RegOpd &reg) {
   __unused(src_index);
-  auto& warp = warps_.at(wid);
+  auto &warp = warps_.at(wid);
   uint32_t num_threads = warp.tmask.size();
   out.resize(num_threads);
   switch (reg.type) {
@@ -58,7 +58,8 @@ void Emulator::fetch_registers(std::vector<reg_data_t>& out, uint32_t wid, uint3
   case RegType::Vector:
     DPH(2, "Src" << src_index << " Reg: " << reg << "={");
     for (uint32_t t = 0; t < num_threads; ++t) {
-      if (t) DPN(2, ", ");
+      if (t)
+        DPN(2, ", ");
       if (!warp.tmask.test(t)) {
         DPN(2, "-");
         continue;
@@ -70,14 +71,15 @@ void Emulator::fetch_registers(std::vector<reg_data_t>& out, uint32_t wid, uint3
     break;
   case RegType::Integer: {
     DPH(2, "Src" << src_index << " Reg: " << reg << "={");
-    auto& reg_data = warp.ireg_file.at(reg.idx);
+    auto &reg_data = warp.ireg_file.at(reg.idx);
     for (uint32_t t = 0; t < num_threads; ++t) {
-      if (t) DPN(2, ", ");
+      if (t)
+        DPN(2, ", ");
       if (!warp.tmask.test(t)) {
         DPN(2, "-");
         continue;
       }
-      auto& value = out[t];
+      auto &value = out[t];
       value.u = reg_data.at(t);
       DPN(2, "0x" << std::hex << value.u << std::dec);
     }
@@ -85,14 +87,15 @@ void Emulator::fetch_registers(std::vector<reg_data_t>& out, uint32_t wid, uint3
   } break;
   case RegType::Float: {
     DPH(2, "Src" << src_index << " Reg: " << reg << "={");
-    auto& reg_data = warp.freg_file.at(reg.idx);
+    auto &reg_data = warp.freg_file.at(reg.idx);
     for (uint32_t t = 0; t < num_threads; ++t) {
-      if (t) DPN(2, ", ");
+      if (t)
+        DPN(2, ", ");
       if (!warp.tmask.test(t)) {
         DPN(2, "-");
         continue;
       }
-      auto& value = out[t];
+      auto &value = out[t];
       value.u64 = reg_data.at(t);
       if ((value.u64 >> 32) == 0xffffffff) {
         DPN(2, "0x" << std::hex << value.u32 << std::dec);
@@ -108,8 +111,8 @@ void Emulator::fetch_registers(std::vector<reg_data_t>& out, uint32_t wid, uint3
   }
 }
 
-instr_trace_t* Emulator::execute(const Instr &instr, uint32_t wid) {
-  auto& warp = warps_.at(wid);
+instr_trace_t *Emulator::execute(const Instr &instr, uint32_t wid) {
+  auto &warp = warps_.at(wid);
   assert(warp.tmask.any());
 
   auto next_pc = warp.PC + 4;
@@ -118,23 +121,23 @@ instr_trace_t* Emulator::execute(const Instr &instr, uint32_t wid) {
   auto fu_type = instr.getFUType();
   auto op_type = instr.getOpType();
   auto instrArgs = instr.getArgs();
-  auto rdest  = instr.getDestReg();
-  auto rsrc0  = instr.getSrcReg(0);
-  auto rsrc1  = instr.getSrcReg(1);
-  auto rsrc2  = instr.getSrcReg(2);
+  auto rdest = instr.getDestReg();
+  auto rsrc0 = instr.getSrcReg(0);
+  auto rsrc1 = instr.getSrcReg(1);
+  auto rsrc2 = instr.getSrcReg(2);
 
   auto num_threads = arch_.num_threads();
 
   // create instruction trace
   auto trace_alloc = core_->trace_pool().allocate(1);
   auto trace = new (trace_alloc) instr_trace_t(instr.getUUID(), arch_);
-  trace->fu_type  = fu_type;
-  trace->op_type  = op_type;
-  trace->cid      = core_->id();
-  trace->wid      = wid;
-  trace->PC       = warp.PC;
-  trace->tmask    = warp.tmask;
-  trace->dst_reg  = rdest;
+  trace->fu_type = fu_type;
+  trace->op_type = op_type;
+  trace->cid = core_->id();
+  trace->wid = wid;
+  trace->PC = warp.PC;
+  trace->tmask = warp.tmask;
+  trace->dst_reg = rdest;
   trace->src_regs = {rsrc0, rsrc1, rsrc2};
 
   std::vector<reg_data_t> rd_data(num_threads);
@@ -143,12 +146,15 @@ instr_trace_t* Emulator::execute(const Instr &instr, uint32_t wid) {
   std::vector<reg_data_t> rs3_data;
 
   DP(1, "Instr: " << instr << ", cid=" << core_->id() << ", wid=" << wid << ", tmask=" << warp.tmask
-         << ", PC=0x" << std::hex << warp.PC << std::dec << " (#" << instr.getUUID() << ")");
+                  << ", PC=0x" << std::hex << warp.PC << std::dec << " (#" << instr.getUUID() << ")");
 
   // fetch register values
-  if (rsrc0.type != RegType::None) fetch_registers(rs1_data, wid, 0, rsrc0);
-  if (rsrc1.type != RegType::None) fetch_registers(rs2_data, wid, 1, rsrc1);
-  if (rsrc2.type != RegType::None) fetch_registers(rs3_data, wid, 2, rsrc2);
+  if (rsrc0.type != RegType::None)
+    fetch_registers(rs1_data, wid, 0, rsrc0);
+  if (rsrc1.type != RegType::None)
+    fetch_registers(rs2_data, wid, 1, rsrc1);
+  if (rsrc2.type != RegType::None)
+    fetch_registers(rs3_data, wid, 2, rsrc2);
 
   uint32_t thread_start = 0;
   for (; thread_start < num_threads; ++thread_start) {
@@ -169,8 +175,7 @@ instr_trace_t* Emulator::execute(const Instr &instr, uint32_t wid) {
 
   bool rd_write = false;
 
-  visit_var(op_type,
-    [&](AluType alu_type) {
+  visit_var(op_type, [&](AluType alu_type) {
       auto aluArgs = std::get<IntrAluArgs>(instrArgs);
       Word imm = sext<Word>(aluArgs.imm, 32);
       switch (alu_type) {
@@ -303,9 +308,7 @@ instr_trace_t* Emulator::execute(const Instr &instr, uint32_t wid) {
       default:
         std::abort();
       }
-      rd_write = true;
-    },
-    [&](VoteType vote_type) {
+      rd_write = true; }, [&](VoteType vote_type) {
       bool has_vote_true = false;
       bool has_vote_false = false;
       Word ballot = 0;
@@ -339,9 +342,7 @@ instr_trace_t* Emulator::execute(const Instr &instr, uint32_t wid) {
           std::abort();
         }
       }
-      rd_write = true;
-    },
-    [&](ShflType shfl_type) {
+      rd_write = true; }, [&](ShflType shfl_type) {
       for (uint32_t t = thread_start; t < num_threads; ++t) {
         if (!warp.tmask.test(t))
           continue;
@@ -381,9 +382,7 @@ instr_trace_t* Emulator::execute(const Instr &instr, uint32_t wid) {
           rd_data[t].i = rs1_data[t].i;
         }
       }
-      rd_write = true;
-    },
-    [&](BrType br_type) {
+      rd_write = true; }, [&](BrType br_type) {
       auto brArgs = std::get<IntrBrArgs>(instrArgs);
       Word offset = sext<Word>(brArgs.offset, 32);
       switch (br_type) {
@@ -488,9 +487,7 @@ instr_trace_t* Emulator::execute(const Instr &instr, uint32_t wid) {
         break;
       default:
         std::abort();
-      }
-    },
-    [&](MdvType mdv_type) {
+      } }, [&](MdvType mdv_type) {
       auto mdvArgs = std::get<IntrMdvArgs>(instrArgs);
       switch (mdv_type) {
       case MdvType::MUL: {
@@ -655,9 +652,7 @@ instr_trace_t* Emulator::execute(const Instr &instr, uint32_t wid) {
       default:
         std::abort();
       }
-      rd_write = true;
-    },
-    [&](LsuType lsu_type) {
+      rd_write = true; }, [&](LsuType lsu_type) {
       auto lsuArgs = std::get<IntrLsuArgs>(instrArgs);
       switch (lsu_type) {
       case LsuType::LOAD: {
@@ -726,11 +721,28 @@ instr_trace_t* Emulator::execute(const Instr &instr, uint32_t wid) {
       case LsuType::FENCE: {
         // no compute
       } break;
+      case LsuType::PREFETCH: {
+          auto trace_data = std::make_shared<LsuTraceData>(num_threads);
+          trace->data = trace_data;
+          
+          for (uint32_t t = thread_start; t < num_threads; ++t) {
+              if (!warp.tmask.test(t))
+                  continue;
+              uint64_t prefetch_addr = rs1_data[t].u;
+              
+              // Record the prefetch address in trace
+              trace_data->mem_addrs.at(t) = {prefetch_addr, 4}; // 4 bytes or cache line size
+              
+              // Issue dummy read to populate cache -> prefetching
+              uint32_t dummy;
+              this->dcache_read(&dummy, prefetch_addr, sizeof(uint32_t));
+              
+              DP(2, "PREFETCH: addr=0x" << std::hex << prefetch_addr << std::dec << " (thread " << t << ")");
+          }
+      } break;
       default:
         std::abort();
-      }
-    },
-    [&](AmoType amo_type) {
+      } }, [&](AmoType amo_type) {
       auto amoArgs = std::get<IntrAmoArgs>(instrArgs);
       auto trace_data = std::make_shared<LsuTraceData>(num_threads);
       trace->data = trace_data;
@@ -906,9 +918,7 @@ instr_trace_t* Emulator::execute(const Instr &instr, uint32_t wid) {
       default:
         std::abort();
       }
-      rd_write = true;
-    },
-    [&](FpuType fpu_type) {
+      rd_write = true; }, [&](FpuType fpu_type) {
       auto fpuArgs = std::get<IntrFpuArgs>(instrArgs);
       switch (fpu_type) {
       case FpuType::FADD: {
@@ -1264,9 +1274,7 @@ instr_trace_t* Emulator::execute(const Instr &instr, uint32_t wid) {
       default:
         std::abort();
       }
-      rd_write = true;
-    },
-    [&](CsrType csr_type) {
+      rd_write = true; }, [&](CsrType csr_type) {
       auto csrArgs = std::get<IntrCsrArgs>(instrArgs);
       uint32_t csr_addr = csrArgs.csr;
       switch (csr_type) {
@@ -1308,9 +1316,7 @@ instr_trace_t* Emulator::execute(const Instr &instr, uint32_t wid) {
         std::abort();
       }
       trace->fetch_stall = (csr_addr <= VX_CSR_FCSR);
-      rd_write = true;
-    },
-    [&](WctlType wctl_type) {
+      rd_write = true; }, [&](WctlType wctl_type) {
       auto wctlArgs = std::get<IntrWctlArgs>(instrArgs);
       switch (wctl_type) {
       case WctlType::TMC: {
@@ -1397,10 +1403,10 @@ instr_trace_t* Emulator::execute(const Instr &instr, uint32_t wid) {
       } break;
       default:
         std::abort();
-      }
-    }
-  #ifdef EXT_V_ENABLE
-    ,[&](VsetType /*vset_type*/) {
+      } }
+#ifdef EXT_V_ENABLE
+            ,
+            [&](VsetType /*vset_type*/) {
       auto trace_data = std::make_shared<VecUnit::ExeTraceData>();
       trace->data = trace_data;
       for (uint32_t t = thread_start; t < num_threads; ++t) {
@@ -1408,9 +1414,7 @@ instr_trace_t* Emulator::execute(const Instr &instr, uint32_t wid) {
           continue;
         vec_unit_->configure(instr, wid, t, rs1_data, rs2_data, rd_data, trace_data.get());
       }
-      rd_write = true;
-    },
-    [&](VlsType vls_type) {
+      rd_write = true; }, [&](VlsType vls_type) {
       switch (vls_type) {
       case VlsType::VL:
       case VlsType::VLS:
@@ -1437,9 +1441,7 @@ instr_trace_t* Emulator::execute(const Instr &instr, uint32_t wid) {
       } break;
       default:
         std::abort();
-      }
-    },
-    [&](VopType /*vop_type*/) {
+      } }, [&](VopType /*vop_type*/) {
       auto trace_data = std::make_shared<VecUnit::ExeTraceData>();
       trace->data = trace_data;
       for (uint32_t t = thread_start; t < num_threads; ++t) {
@@ -1447,11 +1449,11 @@ instr_trace_t* Emulator::execute(const Instr &instr, uint32_t wid) {
           continue;
         vec_unit_->execute(instr, wid, t, rs1_data, rd_data, trace_data.get());
       }
-      rd_write = true;
-    }
-  #endif // EXT_V_ENABLE
-  #ifdef EXT_TCU_ENABLE
-    ,[&](TcuType tcu_type) {
+      rd_write = true; }
+#endif // EXT_V_ENABLE
+#ifdef EXT_TCU_ENABLE
+            ,
+            [&](TcuType tcu_type) {
       auto tpuArgs = std::get<IntrTcuArgs>(instrArgs);
       switch (tcu_type) {
       case TcuType::WMMA: {
@@ -1463,9 +1465,8 @@ instr_trace_t* Emulator::execute(const Instr &instr, uint32_t wid) {
       } break;
       default:
         std::abort();
-      }
-    }
-  #endif // EXT_TCU_ENABLE
+      } }
+#endif // EXT_TCU_ENABLE
   );
 
   if (rd_write) {
@@ -1477,7 +1478,8 @@ instr_trace_t* Emulator::execute(const Instr &instr, uint32_t wid) {
       if (rdest.idx != 0) {
         DPH(2, "Dest Reg: " << rdest << "={");
         for (uint32_t t = 0; t < num_threads; ++t) {
-          if (t) DPN(2, ", ");
+          if (t)
+            DPN(2, ", ");
           if (!warp.tmask.test(t)) {
             DPN(2, "-");
             continue;
@@ -1494,7 +1496,8 @@ instr_trace_t* Emulator::execute(const Instr &instr, uint32_t wid) {
     case RegType::Float:
       DPH(2, "Dest Reg: " << rdest << "={");
       for (uint32_t t = 0; t < num_threads; ++t) {
-        if (t) DPN(2, ", ");
+        if (t)
+          DPN(2, ", ");
         if (!warp.tmask.test(t)) {
           DPN(2, "-");
           continue;
@@ -1508,11 +1511,12 @@ instr_trace_t* Emulator::execute(const Instr &instr, uint32_t wid) {
       }
       DPN(2, "}" << std::endl);
       break;
-  #ifdef EXT_V_ENABLE
+#ifdef EXT_V_ENABLE
     case RegType::Vector:
       DPH(2, "Dest Reg: " << rdest << "={");
       for (uint32_t t = 0; t < num_threads; ++t) {
-        if (t) DPN(2, ", ");
+        if (t)
+          DPN(2, ", ");
         if (!warp.tmask.test(t)) {
           DPN(2, "-");
           continue;
@@ -1521,7 +1525,7 @@ instr_trace_t* Emulator::execute(const Instr &instr, uint32_t wid) {
       }
       DPN(2, "}" << std::endl);
       break;
-  #endif
+#endif
     default:
       std::cout << "Unrecognized register write back type: " << rdest.type << std::endl;
       std::abort();
@@ -1551,7 +1555,7 @@ instr_trace_t* Emulator::execute(const Instr &instr, uint32_t wid) {
     DPN(5, "  %r" << std::setfill('0') << std::setw(2) << i << ':' << std::hex);
     // Integer register file
     for (uint32_t j = 0; j < arch_.num_threads(); ++j) {
-      DPN(5, ' ' << std::setfill('0') << std::setw(XLEN/4) << warp.ireg_file.at(i).at(j) << std::setfill(' ') << ' ');
+      DPN(5, ' ' << std::setfill('0') << std::setw(XLEN / 4) << warp.ireg_file.at(i).at(j) << std::setfill(' ') << ' ');
     }
     DPN(5, '|');
     // Floating point register file

@@ -11,20 +11,20 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+#include "arch.h"
+#include "debug.h"
+#include "emulator.h"
+#include "instr.h"
+#include "types.h"
+#include <iomanip>
 #include <iostream>
-#include <string>
 #include <sstream>
 #include <stdlib.h>
 #include <string.h>
-#include <iomanip>
-#include <vector>
+#include <string>
 #include <unordered_map>
 #include <util.h>
-#include "debug.h"
-#include "types.h"
-#include "emulator.h"
-#include "arch.h"
-#include "instr.h"
+#include <vector>
 
 #ifdef EXT_TCU_ENABLE
 #include "tensor_cfg.h"
@@ -35,8 +35,7 @@ using namespace vortex;
 static op_string_t op_string(const Instr &instr) {
   auto op_type = instr.getOpType();
   auto instrArgs = instr.getArgs();
-  return visit_var(op_type,
-    [&](AluType alu_type)-> op_string_t {
+  return visit_var(op_type, [&](AluType alu_type) -> op_string_t {
       auto aluArgs = std::get<IntrAluArgs>(instrArgs);
       switch (alu_type) {
       case AluType::LUI:   return {"LUI", to_hex_str(aluArgs.imm)};
@@ -114,9 +113,7 @@ static op_string_t op_string(const Instr &instr) {
       case AluType::CZERO: return {aluArgs.imm ? "CZERO.NEZ":"CZERO.EQZ", ""};
       default:
         std::abort();
-      }
-    },
-    [&](VoteType vote_type)-> op_string_t {
+      } }, [&](VoteType vote_type) -> op_string_t {
       switch (vote_type) {
       case VoteType::ALL: return {"VOTE.ALL", ""};
       case VoteType::ANY: return {"VOTE.ANY", ""};
@@ -124,9 +121,7 @@ static op_string_t op_string(const Instr &instr) {
       case VoteType::BAL: return {"VOTE.BAL", ""};
       default:
         std::abort();
-      }
-    },
-    [&](ShflType shfl_type)-> op_string_t {
+      } }, [&](ShflType shfl_type) -> op_string_t {
       switch (shfl_type) {
       case ShflType::UP:   return {"SHFL.UP", ""};
       case ShflType::DOWN: return {"SHFL.DOWN", ""};
@@ -134,9 +129,7 @@ static op_string_t op_string(const Instr &instr) {
       case ShflType::IDX:  return {"SHFL.IDX", ""};
       default:
         std::abort();
-      }
-    },
-    [&](BrType br_type)-> op_string_t {
+      } }, [&](BrType br_type) -> op_string_t {
       auto brArgs = std::get<IntrBrArgs>(instrArgs);
       switch (br_type) {
       case BrType::BR: {
@@ -165,9 +158,7 @@ static op_string_t op_string(const Instr &instr) {
         }
       default:
         std::abort();
-      }
-    },
-    [&](MdvType mdv_type)-> op_string_t {
+      } }, [&](MdvType mdv_type) -> op_string_t {
       auto mdvArgs = std::get<IntrMdvArgs>(instrArgs);
       switch (mdv_type) {
       case MdvType::MUL:    return {mdvArgs.is_w ? "MULW":"MUL", ""};
@@ -180,9 +171,7 @@ static op_string_t op_string(const Instr &instr) {
       case MdvType::REMU:   return {mdvArgs.is_w ? "REMUW":"REMU", ""};
       default:
         std::abort();
-      }
-    },
-    [&](FpuType fpu_type)-> op_string_t {
+      } }, [&](FpuType fpu_type) -> op_string_t {
       auto fpuArgs = std::get<IntrFpuArgs>(instrArgs);
       switch (fpu_type) {
       case FpuType::FADD:   return {fpuArgs.is_f64 ? "FADD.D":"FADD.S", ""};
@@ -246,9 +235,7 @@ static op_string_t op_string(const Instr &instr) {
       }
       default:
         std::abort();
-      }
-    },
-    [&](LsuType lsu_type)-> op_string_t {
+      } }, [&](LsuType lsu_type) -> op_string_t {
       switch (lsu_type) {
       case LsuType::LOAD: {
         auto lsuArgs = std::get<IntrLsuArgs>(instrArgs);
@@ -294,11 +281,10 @@ static op_string_t op_string(const Instr &instr) {
         }
       }
       case LsuType::FENCE: return {"FENCE", ""};
+      case LsuType::PREFETCH: return {"PREFETCH", ""};
       default:
         std::abort();
-      }
-    },
-    [&](AmoType amo_type)-> op_string_t {
+      } }, [&](AmoType amo_type) -> op_string_t {
       auto amoArgs = std::get<IntrAmoArgs>(instrArgs);
       switch (amoArgs.width) {
       case 2: {
@@ -337,9 +323,7 @@ static op_string_t op_string(const Instr &instr) {
       }
       default:
         std::abort();
-      }
-    },
-    [&](CsrType csr_type)-> op_string_t {
+      } }, [&](CsrType csr_type) -> op_string_t {
       auto csrArgs = std::get<IntrCsrArgs>(instrArgs);
       if (csrArgs.is_imm) {
         switch (csr_type) {
@@ -357,9 +341,7 @@ static op_string_t op_string(const Instr &instr) {
         default:
           std::abort();
         }
-      }
-    },
-    [&](WctlType wctl_type)-> op_string_t {
+      } }, [&](WctlType wctl_type) -> op_string_t {
       auto wctlArgs = std::get<IntrWctlArgs>(instrArgs);
       switch (wctl_type) {
       case WctlType::TMC:    return {"TMC", ""};
@@ -370,10 +352,10 @@ static op_string_t op_string(const Instr &instr) {
       case WctlType::PRED:   return {wctlArgs.is_neg ? "PRED.N":"PRED", ""};
       default:
         std::abort();
-      }
-    }
-  #ifdef EXT_V_ENABLE
-    ,[&](VsetType vset_type)-> op_string_t {
+      } }
+#ifdef EXT_V_ENABLE
+                   ,
+                   [&](VsetType vset_type) -> op_string_t {
       auto vsetArgs = std::get<IntrVsetArgs>(instrArgs);
       switch (vset_type) {
       case VsetType::VSETVLI:  return {"VSETVLI", vsetArgs.to_string(vset_type)};
@@ -381,9 +363,7 @@ static op_string_t op_string(const Instr &instr) {
       case VsetType::VSETVL:   return {"VSETVL", vsetArgs.to_string(vset_type)};
       default:
         std::abort();
-      }
-    },
-    [&](VlsType vls_type)-> op_string_t {
+      } }, [&](VlsType vls_type) -> op_string_t {
       auto vlsArgs = std::get<IntrVlsArgs>(instrArgs);
       switch (vls_type) {
       case VlsType::VL: {
@@ -450,9 +430,7 @@ static op_string_t op_string(const Instr &instr) {
       }
       default:
         std::abort();
-      }
-    },
-    [&](VopType vop_type)-> op_string_t {
+      } }, [&](VopType vop_type) -> op_string_t {
       auto vopArgs = std::get<IntrVopArgs>(instrArgs);
       switch (vop_type) {
       case VopType::OPIVV: return {"OPIVV", vopArgs.to_string(vop_type)};
@@ -464,17 +442,16 @@ static op_string_t op_string(const Instr &instr) {
       case VopType::OPMVX: return {"OPMVX", vopArgs.to_string(vop_type)};
       default:
         std::abort();
-      }
-    }
-  #endif // EXT_V_ENABLE
-  #ifdef EXT_TCU_ENABLE
-    ,[&](TcuType tcu_type)-> op_string_t {
+      } }
+#endif // EXT_V_ENABLE
+#ifdef EXT_TCU_ENABLE
+                   ,
+                   [&](TcuType tcu_type) -> op_string_t {
       auto tpuArgs = std::get<IntrTcuArgs>(instrArgs);
-      return op_string(tcu_type, tpuArgs);
-    }
-  #endif // EXT_TCU_ENABLE
- );
- return {"", ""};
+      return op_string(tcu_type, tpuArgs); }
+#endif // EXT_TCU_ENABLE
+  );
+  return {"", ""};
 }
 
 namespace vortex {
@@ -484,27 +461,39 @@ std::ostream &operator<<(std::ostream &os, const Instr &instr) {
   os << sintr.op;
   auto rd = instr.getDestReg();
   if (rd.type != RegType::None) {
-    if (sep++ != 0) { os << ", "; } else { os << " "; }
+    if (sep++ != 0) {
+      os << ", ";
+    } else {
+      os << " ";
+    }
     os << rd;
   }
   for (uint32_t i = 0; i < Instr::MAX_REG_SOURCES; ++i) {
     auto rs = instr.getSrcReg(i);
     if (rs.type != RegType::None) {
-      if (sep++ != 0) { os << ", "; } else { os << " "; }
+      if (sep++ != 0) {
+        os << ", ";
+      } else {
+        os << " ";
+      }
       os << rs;
     }
   }
   if (sintr.arg != "") {
-    if (sep++ != 0) { os << ", "; } else { os << " "; }
+    if (sep++ != 0) {
+      os << ", ";
+    } else {
+      os << " ";
+    }
     os << sintr.arg;
   }
   return os;
 }
-}
+} // namespace vortex
 
 void Emulator::decode(uint32_t code, uint32_t wid, uint64_t uuid) {
   // get instruction buffer
-  auto& ibuffer = warps_.at(wid).ibuffer;
+  auto &ibuffer = warps_.at(wid).ibuffer;
 
   auto op = Opcode((code >> shift_opcode) & mask_opcode);
   auto funct2 = (code >> shift_funct2) & mask_funct2;
@@ -514,7 +503,7 @@ void Emulator::decode(uint32_t code, uint32_t wid, uint64_t uuid) {
   auto funct7 = (code >> shift_funct7) & mask_funct7;
   __unused(funct6);
 
-  auto rd  = (code >> shift_rd)  & mask_reg;
+  auto rd = (code >> shift_rd) & mask_reg;
   auto rs1 = (code >> shift_rs1) & mask_reg;
   auto rs2 = (code >> shift_rs2) & mask_reg;
   auto rs3 = (code >> shift_rs3) & mask_reg;
@@ -543,16 +532,14 @@ void Emulator::decode(uint32_t code, uint32_t wid, uint64_t uuid) {
       uint32_t imm;
       if (funct3 == 0x5) { // CZERO.EQZ
         imm = 0;
-      } else
-      if (funct3 == 0x7) { // CZERO.NEZ
+      } else if (funct3 == 0x7) { // CZERO.NEZ
         imm = 1;
       } else {
         std::abort();
       }
       instr->setOpType(AluType::CZERO);
       instr->setArgs(IntrAluArgs{0, 0, imm});
-    } else
-    if ((op == Opcode::R || op == Opcode::R_W) && (funct7 & 0x1)) {
+    } else if ((op == Opcode::R || op == Opcode::R_W) && (funct7 & 0x1)) {
       switch (funct3) {
       case 0: { // RV32M: MUL
         instr->setOpType(MdvType::MUL);
@@ -595,9 +582,9 @@ void Emulator::decode(uint32_t code, uint32_t wid, uint64_t uuid) {
       if (funct3 == 0x1 || funct3 == 0x5) {
         // Shift instructions
         imm = rs2; // uint5
-      #ifdef XLEN_64
+#ifdef XLEN_64
         imm |= ((funct7 & 0x1) << 5);
-      #endif
+#endif
       } else {
         auto imm12 = code >> shift_rs2;
         imm = sext(imm12, width_i_imm);
@@ -649,12 +636,12 @@ void Emulator::decode(uint32_t code, uint32_t wid, uint64_t uuid) {
   } break;
   case Opcode::B: {
     auto instr = std::allocate_shared<Instr>(instr_pool_, uuid, FUType::ALU);
-    auto bit_11   = rd & 0x1;
+    auto bit_11 = rd & 0x1;
     auto bits_4_1 = rd >> 1;
     auto bit_10_5 = funct7 & 0x3f;
-    auto bit_12   = funct7 >> 6;
+    auto bit_12 = funct7 >> 6;
     auto imm12 = (bits_4_1 << 1) | (bit_10_5 << 5) | (bit_11 << 11) | (bit_12 << 12);
-    auto addr = sext(imm12, width_i_imm+1);
+    auto addr = sext(imm12, width_i_imm + 1);
     instr->setOpType(BrType::BR);
     instr->setArgs(IntrBrArgs{funct3, addr});
     instr->setSrcReg(0, rs1, RegType::Integer);
@@ -663,13 +650,13 @@ void Emulator::decode(uint32_t code, uint32_t wid, uint64_t uuid) {
   } break;
   case Opcode::JAL: {
     auto instr = std::allocate_shared<Instr>(instr_pool_, uuid, FUType::ALU);
-    auto unordered  = code >> shift_funct3;
+    auto unordered = code >> shift_funct3;
     auto bits_19_12 = unordered & 0xff;
-    auto bit_11     = (unordered >> 8) & 0x1;
-    auto bits_10_1  = (unordered >> 9) & 0x3ff;
-    auto bit_20     = (unordered >> 19) & 0x1;
+    auto bit_11 = (unordered >> 8) & 0x1;
+    auto bits_10_1 = (unordered >> 9) & 0x3ff;
+    auto bit_20 = (unordered >> 19) & 0x1;
     auto imm20 = (bits_10_1 << 1) | (bit_11 << 11) | (bits_19_12 << 12) | (bit_20 << 20);
-    auto addr = sext(imm20, width_j_imm+1);
+    auto addr = sext(imm20, width_j_imm + 1);
     instr->setOpType(BrType::JAL);
     instr->setArgs(IntrBrArgs{0, addr});
     instr->setDestReg(rd, RegType::Integer);
@@ -691,7 +678,7 @@ void Emulator::decode(uint32_t code, uint32_t wid, uint64_t uuid) {
   case Opcode::FS: {
     bool is_float = (op == Opcode::FL || op == Opcode::FS);
     bool is_load = (op == Opcode::L || op == Opcode::FL);
-  #ifdef EXT_V_ENABLE
+#ifdef EXT_V_ENABLE
     if (is_float && funct3 != 0x2 && funct3 != 0x3) {
       auto instr = std::allocate_shared<Instr>(instr_pool_, uuid, FUType::LSU);
       IntrVlsArgs instArgs{};
@@ -699,10 +686,18 @@ void Emulator::decode(uint32_t code, uint32_t wid, uint64_t uuid) {
       instArgs.vm = (code >> shift_vm) & mask_vm;
       instArgs.nf = (code >> shift_vnf) & mask_vnf;
       switch (funct3) {
-      case 0: instArgs.width = 0; break;
-      case 5: instArgs.width = 1; break;
-      case 6: instArgs.width = 2; break;
-      case 7: instArgs.width = 3; break;
+      case 0:
+        instArgs.width = 0;
+        break;
+      case 5:
+        instArgs.width = 1;
+        break;
+      case 6:
+        instArgs.width = 2;
+        break;
+      case 7:
+        instArgs.width = 3;
+        break;
       default:
         std::abort();
       }
@@ -731,7 +726,7 @@ void Emulator::decode(uint32_t code, uint32_t wid, uint64_t uuid) {
       instr->setArgs(instArgs);
       ibuffer.push_back(instr);
     } else
-  #endif // EXT_V_ENABLE
+#endif // EXT_V_ENABLE
     {
       auto instr = std::allocate_shared<Instr>(instr_pool_, uuid, FUType::LSU);
       instr->setSrcReg(0, rs1, RegType::Integer);
@@ -760,17 +755,39 @@ void Emulator::decode(uint32_t code, uint32_t wid, uint64_t uuid) {
     uint32_t aq = (code >> shift_aq) & mask_aq;
     uint32_t rl = (code >> shift_rl) & mask_rl;
     switch (funct5) {
-    case 0x00: instr->setOpType(AmoType::AMOADD); break;
-    case 0x01: instr->setOpType(AmoType::AMOSWAP); break;
-    case 0x02: instr->setOpType(AmoType::LR); break;
-    case 0x03: instr->setOpType(AmoType::SC); break;
-    case 0x04: instr->setOpType(AmoType::AMOXOR); break;
-    case 0x08: instr->setOpType(AmoType::AMOOR); break;
-    case 0x0c: instr->setOpType(AmoType::AMOAND); break;
-    case 0x10: instr->setOpType(AmoType::AMOMIN); break;
-    case 0x14: instr->setOpType(AmoType::AMOMAX); break;
-    case 0x18: instr->setOpType(AmoType::AMOMINU); break;
-    case 0x1c: instr->setOpType(AmoType::AMOMAXU); break;
+    case 0x00:
+      instr->setOpType(AmoType::AMOADD);
+      break;
+    case 0x01:
+      instr->setOpType(AmoType::AMOSWAP);
+      break;
+    case 0x02:
+      instr->setOpType(AmoType::LR);
+      break;
+    case 0x03:
+      instr->setOpType(AmoType::SC);
+      break;
+    case 0x04:
+      instr->setOpType(AmoType::AMOXOR);
+      break;
+    case 0x08:
+      instr->setOpType(AmoType::AMOOR);
+      break;
+    case 0x0c:
+      instr->setOpType(AmoType::AMOAND);
+      break;
+    case 0x10:
+      instr->setOpType(AmoType::AMOMIN);
+      break;
+    case 0x14:
+      instr->setOpType(AmoType::AMOMAX);
+      break;
+    case 0x18:
+      instr->setOpType(AmoType::AMOMINU);
+      break;
+    case 0x1c:
+      instr->setOpType(AmoType::AMOMAXU);
+      break;
     default:
       std::abort();
     }
@@ -785,9 +802,18 @@ void Emulator::decode(uint32_t code, uint32_t wid, uint64_t uuid) {
       auto instr = std::allocate_shared<Instr>(instr_pool_, uuid, FUType::SFU);
       instr->setDestReg(rd, RegType::Integer);
       switch (funct3) {
-      case 1: case 5: instr->setOpType(CsrType::CSRRW); break;
-      case 2: case 6: instr->setOpType(CsrType::CSRRS); break;
-      case 3: case 7: instr->setOpType(CsrType::CSRRC); break;
+      case 1:
+      case 5:
+        instr->setOpType(CsrType::CSRRW);
+        break;
+      case 2:
+      case 6:
+        instr->setOpType(CsrType::CSRRS);
+        break;
+      case 3:
+      case 7:
+        instr->setOpType(CsrType::CSRRC);
+        break;
       default:
         std::abort();
       }
@@ -908,9 +934,9 @@ void Emulator::decode(uint32_t code, uint32_t wid, uint64_t uuid) {
   case Opcode::FNMADD:
   case Opcode::FNMSUB: {
     auto instr = std::allocate_shared<Instr>(instr_pool_, uuid, FUType::FPU);
-    instr->setOpType((op == Opcode::FMADD) ? FpuType::FMADD :
-                     (op == Opcode::FMSUB) ? FpuType::FMSUB :
-                     (op == Opcode::FNMADD) ? FpuType::FNMADD : FpuType::FNMSUB);
+    instr->setOpType((op == Opcode::FMADD) ? FpuType::FMADD : (op == Opcode::FMSUB) ? FpuType::FMSUB
+                                                          : (op == Opcode::FNMADD)  ? FpuType::FNMADD
+                                                                                    : FpuType::FNMSUB);
     instr->setArgs(IntrFpuArgs{funct3, funct2, (funct7 & 0x1)});
     instr->setDestReg(rd, RegType::Float);
     instr->setSrcReg(0, rs1, RegType::Float);
@@ -1076,7 +1102,7 @@ void Emulator::decode(uint32_t code, uint32_t wid, uint64_t uuid) {
       }
       ibuffer.push_back(instr);
     } break;
-  #ifdef EXT_TCU_ENABLE
+#ifdef EXT_TCU_ENABLE
     case 2: {
       switch (funct3) {
       case 0: { // WMMA
@@ -1117,10 +1143,24 @@ void Emulator::decode(uint32_t code, uint32_t wid, uint64_t uuid) {
         std::abort();
       }
     } break;
-  #endif
+
+#endif
     default:
       std::abort();
     }
+  } break;
+  case 5: { // SOFTWARE PREFETCH
+    auto instr = std::allocate_shared<Instr>(instr_pool_, uuid, FUType::LSU);
+    switch (funct3) {
+    case 0:                                // PREFETCH
+      instr->setOpType(LsuType::PREFETCH); // Make sure it is set to PREFETCH
+      instr->setArgs(IntrLsuArgs{0, 0, 0});
+      instr->setSrcReg(0, rs1, RegType::Integer);
+      break;
+    default:
+      std::abort();
+    }
+    ibuffer.push_back(instr);
   } break;
   default:
     std::abort();
