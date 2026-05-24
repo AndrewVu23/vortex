@@ -107,10 +107,14 @@ struct line_t {
 	uint32_t lru_ctr;
 	bool     valid;
 	bool     dirty;
+  bool     was_prefetched;  
+  bool     was_used;
 
 	void reset() {
 		valid = false;
 		dirty = false;
+    was_prefetched = false;
+    was_used = false;
 	}
 };
 
@@ -170,6 +174,7 @@ struct bank_req_t {
 	uint64_t uuid;
 	ReqType  type;
 	bool     write;
+  bool     is_prefetch;
 
 	bank_req_t() {
 		this->reset();
@@ -177,6 +182,7 @@ struct bank_req_t {
 
 	void reset() {
 		type = ReqType::None;
+    is_prefetch = false;
 	}
 
 	friend std::ostream &operator<<(std::ostream &os, const bank_req_t& req) {
@@ -185,6 +191,7 @@ struct bank_req_t {
 		os << ", addr_tag=0x" << std::hex << req.addr_tag;
 		os << ", req_tag=" << req.req_tag;
 		os << ", cid=" << std::dec << req.cid;
+    if (req.is_prefetch) os << ", prefetch=1"; 
 		os << " (#" << req.uuid << ")";
 		return os;
 	}
@@ -374,6 +381,8 @@ private:
 				auto& line  = set.lines.at(entry.line_id);
 				line.valid  = true;
 				line.tag    = entry.bank_req.addr_tag;
+        line.was_prefetched = entry.bank_req.is_prefetch;
+    		line.was_used = false;
 				mshr_.dequeue(&bank_req);
 				--pending_mshr_size_;
 				pipe_req_->push(bank_req);
@@ -400,6 +409,7 @@ private:
 				bank_req.addr_tag = params_.addr_tag(core_req.addr);
 				bank_req.req_tag = core_req.tag;
 				bank_req.write = core_req.write;
+        bank_req.is_prefetch = core_req.is_prefetch;
 				pipe_req_->push(bank_req);
 				if (core_req.write)
 					++perf_stats_.writes;
@@ -428,99 +438,128 @@ private:
 			}
 		} break;
 		case bank_req_t::Core: {
-			int32_t free_line_id = -1;
-			int32_t repl_line_id = 0;
-			auto& set = sets_.at(bank_req.set_id);
-			// tag lookup
-			int hit_line_id = set.tag_lookup(bank_req.addr_tag, &free_line_id, &repl_line_id);
-			if (hit_line_id != -1) {
-				// Hit handling
-				if (bank_req.write) {
-					// handle write has_hit
-					auto& hit_line = set.lines.at(hit_line_id);
-					if (!config_.write_back) {
-						// forward write request to memory
-						MemReq mem_req;
-						mem_req.addr  = params_.mem_addr(bank_id_, bank_req.set_id, bank_req.addr_tag);
-						mem_req.write = true;
-						mem_req.cid   = bank_req.cid;
-						mem_req.uuid  = bank_req.uuid;
-						this->mem_req_port.push(mem_req);
-						DT(3, this->name() << "-writethrough: " << mem_req);
-					} else {
-						// mark line as dirty
-						hit_line.dirty = true;
-					}
-				}
-				// send core response
-				if (!bank_req.write || config_.write_reponse) {
-					MemRsp core_rsp{bank_req.req_tag, bank_req.cid, bank_req.uuid};
-					this->core_rsp_port.push(core_rsp);
-					DT(3, this->name() << "-core-rsp: " << core_rsp);
-				}
-				--pending_mshr_size_;
-			} else {
-				// Miss handling
-				if (bank_req.write)
-					++perf_stats_.write_misses;
-				else
-					++perf_stats_.read_misses;
+        int32_t free_line_id = -1;
+        int32_t repl_line_id = 0;
+        auto& set = sets_.at(bank_req.set_id);
+		
+        // tag lookup
+        int hit_line_id = set.tag_lookup(bank_req.addr_tag, &free_line_id, &repl_line_id);
+		
+        if (hit_line_id != -1) {
+            // Hit handling
+            auto& hit_line = set.lines.at(hit_line_id);
+		
+            // ADD: Mark as used if it was prefetched
+            if (hit_line.was_prefetched && bank_req.is_prefetch) {
+                hit_line.was_used = true;
+            }
+			
+            if (bank_req.write) {
+                // handle write hit
+                if (!config_.write_back) {
+                    MemReq mem_req;
+                    mem_req.addr  = params_.mem_addr(bank_id_, bank_req.set_id, bank_req.addr_tag);
+                    mem_req.write = true;
+                    mem_req.cid   = bank_req.cid;
+                    mem_req.uuid  = bank_req.uuid;
+                    this->mem_req_port.push(mem_req);
+                    DT(3, this->name() << "-writethrough: " << mem_req);
+                } else {
+                    hit_line.dirty = true;
+                }
+            }
+			
+            // send core response (not for prefetch)
+            if (!bank_req.is_prefetch && (!bank_req.write || config_.write_reponse)) {
+                MemRsp core_rsp{bank_req.req_tag, bank_req.cid, bank_req.uuid};
+                this->core_rsp_port.push(core_rsp);
+                DT(3, this->name() << "-core-rsp: " << core_rsp);
+            }
+            --pending_mshr_size_;
+        } else {
+            // Miss handling
+            if (bank_req.write && !bank_req.is_prefetch) {
+                ++perf_stats_.write_misses;
+            } else if (!bank_req.is_prefetch) {
+                ++perf_stats_.read_misses;
+            }
+		
+            // Counter 1: Count unique prefetch requests that miss
+            if (bank_req.is_prefetch) {
+                ++perf_stats_.prefetch_requests;
+            }
 
-				if (free_line_id == -1 && config_.write_back) {
-					// write back dirty line
-					auto& repl_line = set.lines.at(repl_line_id);
-					if (repl_line.dirty) {
-						MemReq mem_req;
-						mem_req.addr  = params_.mem_addr(bank_id_, bank_req.set_id, repl_line.tag);
-						mem_req.write = true;
-						mem_req.cid   = bank_req.cid;
-						this->mem_req_port.push(mem_req);
-						DT(3, this->name() << "-writeback: " << mem_req);
-						++perf_stats_.evictions;
-					}
-				}
+            // Check if there's already a pending MSHR for this address
+            auto mshr_pending = mshr_.lookup(bank_req);
+		
+            // Counter 3: Late prefetch (demand arrives while prefetch in MSHR)
+            if (!bank_req.is_prefetch && mshr_pending) {
+                ++perf_stats_.prefetch_late;
+            }
 
-				if (bank_req.write && !config_.write_back) {
-					// forward write request to memory
-					{
-						MemReq mem_req;
-						mem_req.addr  = params_.mem_addr(bank_id_, bank_req.set_id, bank_req.addr_tag);
-						mem_req.write = true;
-						mem_req.cid   = bank_req.cid;
-						mem_req.uuid  = bank_req.uuid;
-						this->mem_req_port.push(mem_req);
-						DT(3, this->name() << "-writethrough: " << mem_req);
-					}
-					// send core response
-					if (config_.write_reponse) {
-						MemRsp core_rsp{bank_req.req_tag, bank_req.cid, bank_req.uuid};
-						this->core_rsp_port.push(core_rsp);
-						DT(3, this->name() << "-core-rsp: " << core_rsp);
-					}
-					--pending_mshr_size_;
-				} else {
-					// MSHR lookup
-					auto mshr_pending = mshr_.lookup(bank_req);
+            if (free_line_id == -1 && config_.write_back) {
+                // write back dirty line
+                auto& repl_line = set.lines.at(repl_line_id);
+			
+                // Counter 2: Unused prefetch (evicting prefetched but unused line)
+                if (repl_line.was_prefetched && !repl_line.was_used) {
+                    ++perf_stats_.prefetch_unused;
+                }
+			
+                if (repl_line.dirty) {
+                    MemReq mem_req;
+                    mem_req.addr  = params_.mem_addr(bank_id_, bank_req.set_id, repl_line.tag);
+                    mem_req.write = true;
+                    mem_req.cid   = bank_req.cid;
+                    this->mem_req_port.push(mem_req);
+                    DT(3, this->name() << "-writeback: " << mem_req);
+                    ++perf_stats_.evictions;
+                }
+            }
 
-					// allocate MSHR
-					auto mshr_id = mshr_.enqueue(bank_req, (free_line_id != -1) ? free_line_id : repl_line_id);
-					DT(3, this->name() << "-mshr-enqueue: " << bank_req);
+            if (bank_req.write && !config_.write_back) {
+                // forward write request to memory
 
-					// send fill request
-					if (!mshr_pending) {
-						MemReq mem_req;
-						mem_req.addr  = params_.mem_addr(bank_id_, bank_req.set_id, bank_req.addr_tag);
-						mem_req.write = false;
-						mem_req.tag   = mshr_id;
-						mem_req.cid   = bank_req.cid;
-						mem_req.uuid  = bank_req.uuid;
-						this->mem_req_port.push(mem_req);
-						DT(3, this->name() << "-fill-req: " << mem_req);
-						++pending_fill_reqs_;
-					}
-				}
-			}
-		} break;
+                {
+                    MemReq mem_req;
+                    mem_req.addr  = params_.mem_addr(bank_id_, bank_req.set_id, bank_req.addr_tag);
+                    mem_req.write = true;
+                    mem_req.cid   = bank_req.cid;
+                    mem_req.uuid  = bank_req.uuid;
+                    this->mem_req_port.push(mem_req);
+                    DT(3, this->name() << "-writethrough: " << mem_req);
+                }
+                // send core response
+                if (config_.write_reponse && !bank_req.is_prefetch) {
+                    MemRsp core_rsp{bank_req.req_tag, bank_req.cid, bank_req.uuid};
+                    this->core_rsp_port.push(core_rsp);
+                    DT(3, this->name() << "-core-rsp: " << core_rsp);
+                }
+                --pending_mshr_size_;
+            } else {
+	            // MSHR lookup
+				auto mshr_pending = mshr_.lookup(bank_req);
+	            
+                // allocate MSHR
+                auto mshr_id = mshr_.enqueue(bank_req, (free_line_id != -1) ? free_line_id : repl_line_id);
+                DT(3, this->name() << "-mshr-enqueue: " << bank_req);
+
+                // send fill request
+                if (!mshr_pending) {
+                    MemReq mem_req;
+                    mem_req.addr  = params_.mem_addr(bank_id_, bank_req.set_id, bank_req.addr_tag);
+                    mem_req.write = false;
+                    mem_req.tag   = mshr_id;
+                    mem_req.cid   = bank_req.cid;
+                    mem_req.uuid  = bank_req.uuid;
+                    mem_req.is_prefetch = bank_req.is_prefetch; 
+                    this->mem_req_port.push(mem_req);
+                    DT(3, this->name() << "-fill-req: " << mem_req);
+                    ++pending_fill_reqs_;
+                }
+            }
+        }
+    } break;
 		default:
 			std::abort();
 		}

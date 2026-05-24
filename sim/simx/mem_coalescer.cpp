@@ -143,6 +143,8 @@ void MemCoalescer::tick() {
   out_req.cid = in_req.cid;
   out_req.uuid = in_req.uuid;
 
+  out_req.is_prefetch = in_req.is_prefetch;
+
   // send memory request
   ReqOut.push(out_req, delay_);
   DT(4, this->name() << "-mem-req: coalesced=" << cur_mask.count() << ", " << out_req);

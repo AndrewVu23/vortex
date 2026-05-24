@@ -198,6 +198,14 @@
 `define VX_CSR_MPM_TOTAL_ACTIVE_THREADS   12'hB04
 `define VX_CSR_MPM_TOTAL_ACTIVE_THREADS_H 12'hB84
 
+// Prefetching counters (class 2 is full -> use class 3) //////////////////////
+`define VX_CSR_MPM_PREFETCH_REQ     12'hB15     // unique prefetch requests
+`define VX_CSR_MPM_PREFETCH_REQ_H   12'hB95
+`define VX_CSR_MPM_PREFETCH_UNUSED  12'hB16     // unused prefetches
+`define VX_CSR_MPM_PREFETCH_UNUSED_H 12'hB96
+`define VX_CSR_MPM_PREFETCH_LATE    12'hB17     // late prefetches
+`define VX_CSR_MPM_PREFETCH_LATE_H  12'hB97
+
 // Machine Information Registers //////////////////////////////////////////////
 
 `define VX_CSR_MVENDORID                12'hF11

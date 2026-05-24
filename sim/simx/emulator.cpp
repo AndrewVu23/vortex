@@ -520,8 +520,9 @@ Word Emulator::get_csr(uint32_t addr, uint32_t wid, uint32_t tid) {
     if (vec_unit_->get_csr(addr, wid, tid, &value))
       return value;
   #endif
-    if ((addr >= VX_CSR_MPM_BASE && addr < (VX_CSR_MPM_BASE + 32))
-     || (addr >= VX_CSR_MPM_BASE_H && addr < (VX_CSR_MPM_BASE_H + 32))) {
+    // Change to 64-bit to support CSR addresses range
+    if ((addr >= VX_CSR_MPM_BASE && addr < (VX_CSR_MPM_BASE + 64))
+     || (addr >= VX_CSR_MPM_BASE_H && addr < (VX_CSR_MPM_BASE_H + 64))) {
       // user-defined MPM CSRs
       auto perf_class = dcrs_.base_dcrs.read(VX_DCR_BASE_MPM_CLASS);
       switch (perf_class) {
@@ -603,9 +604,13 @@ Word Emulator::get_csr(uint32_t addr, uint32_t wid, uint32_t tid) {
         }
       } break;
       case VX_DCR_MPM_CLASS_3: {
+        auto socket_perf = core_->socket()->perf_stats();
         // Register the counters in the CSR read path
         // CSR_READ_64 covers both lower & upper ends
         switch (addr) {
+        CSR_READ_64(VX_CSR_MPM_PREFETCH_REQ, socket_perf.dcache.prefetch_requests);
+        CSR_READ_64(VX_CSR_MPM_PREFETCH_UNUSED, socket_perf.dcache.prefetch_unused);
+        CSR_READ_64(VX_CSR_MPM_PREFETCH_LATE, socket_perf.dcache.prefetch_late);
         CSR_READ_64(VX_CSR_MPM_TOTAL_ISSUED_WARPS, core_perf.total_issued_warps);
         CSR_READ_64(VX_CSR_MPM_TOTAL_ACTIVE_THREADS, core_perf.total_active_threads);
         }
