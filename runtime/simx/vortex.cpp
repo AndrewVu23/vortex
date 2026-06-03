@@ -378,14 +378,13 @@ public:
     return dcrs_.read(addr, value);
   }
 
-  // Change to 64-bit to support the extended CSR address range
   int mpm_query(uint32_t addr, uint32_t core_id, uint64_t *value) {
     uint32_t offset = addr - VX_CSR_MPM_BASE;
-    if (offset > 63)
+    if (offset > 31)
       return -1;
     if (mpm_cache_.count(core_id) == 0) {
-      uint64_t mpm_mem_addr = IO_MPM_ADDR + core_id * 64 * sizeof(uint64_t);
-      CHECK_ERR(this->download(mpm_cache_[core_id].data(), mpm_mem_addr, 64 * sizeof(uint64_t)), {
+      uint64_t mpm_mem_addr = IO_MPM_ADDR + core_id * 32 * sizeof(uint64_t);
+      CHECK_ERR(this->download(mpm_cache_[core_id].data(), mpm_mem_addr, 32 * sizeof(uint64_t)), {
         return err;
       });
     }

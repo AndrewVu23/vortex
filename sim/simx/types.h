@@ -1197,7 +1197,7 @@ struct MemReq {
          AddrType _type = AddrType::Global,
          uint64_t _tag = 0,
          uint32_t _cid = 0,
-         uint64_t _uuid = 0 bool _is_prefetch = false) : addr(_addr), write(_write), type(_type), tag(_tag), cid(_cid), uuid(_uuid), , is_prefetch(_is_prefetch) {}
+         uint64_t _uuid = 0, bool _is_prefetch = false) : addr(_addr), write(_write), type(_type), tag(_tag), cid(_cid), uuid(_uuid), is_prefetch(_is_prefetch) {}
 
   friend std::ostream &operator<<(std::ostream &os, const MemReq &req) {
     os << "rw=" << req.write << ", ";

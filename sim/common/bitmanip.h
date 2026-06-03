@@ -15,6 +15,8 @@
 
 #include <cstdint>
 #include <assert.h>
+#include <type_traits>
+#include <algorithm>
 
 namespace vortex {
 

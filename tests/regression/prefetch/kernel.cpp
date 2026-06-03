@@ -1,6 +1,6 @@
-#include "common.h"
-#include <vx_intrinsics.h>
 #include <vx_spawn.h>
+#include <vx_intrinsics.h>
+#include "common.h"
 
 void kernel_body(kernel_arg_t *__UNIFORM__ arg) {
   uint32_t count = arg->task_size;

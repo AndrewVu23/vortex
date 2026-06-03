@@ -510,22 +510,6 @@ extern int vx_dump_perf(vx_device_h hdevice, FILE* stream) {
         CHECK_ERR(vx_mpm_query(hdevice, VX_CSR_MPM_DCACHE_MSHR_ST, core_id, &dcache_mshr_stalls), {
           return err;
         });
-        // PERF: Prefetch counters in class 3
-        uint64_t prefetch_requests;
-        CHECK_ERR(vx_mpm_query(hdevice, VX_CSR_MPM_PREFETCH_REQ, core_id, &prefetch_requests), {
-        return err;
-        });
-        uint64_t prefetch_unused;
-        CHECK_ERR(vx_mpm_query(hdevice, VX_CSR_MPM_PREFETCH_UNUSED, core_id, &prefetch_unused), {
-        return err;
-        });
-        uint64_t prefetch_late;
-        CHECK_ERR(vx_mpm_query(hdevice, VX_CSR_MPM_PREFETCH_LATE, core_id, &prefetch_late), {
-        return err;
-        });
-        fprintf(stream, "PERF: core%d: dcache prefetch requests=%lu\n", core_id, prefetch_requests);
-        fprintf(stream, "PERF: core%d: dcache prefetch unused=%lu\n", core_id, prefetch_unused);
-        fprintf(stream, "PERF: core%d: dcache prefetch late=%lu\n", core_id, prefetch_late);
         int dcache_read_hit_ratio = calcRatio(dcache_read_misses, dcache_reads);
         int dcache_write_hit_ratio = calcRatio(dcache_write_misses, dcache_writes);
         int dcache_bank_utilization = calcAvgPercent(dcache_reads + dcache_writes, dcache_reads + dcache_writes + dcache_bank_stalls);
@@ -641,6 +625,26 @@ extern int vx_dump_perf(vx_device_h hdevice, FILE* stream) {
       // Calculate and print warp efficiency
       int warp_efficiency = calcAvgPercent(total_active_threads_per_core, total_issued_warps_per_core * threads_per_warp);
       fprintf(stream, "PERF: core%d: Warp Efficiency=%d%%\n", core_id, warp_efficiency);
+    }
+
+    // PERF: Prefetch counters (class 3). The CSRs 0xB15-0xB17 only return live
+    // data when MPM_CLASS=3, so they must be read here, not in the class-2 block.
+    if (dcache_enable) {
+      uint64_t prefetch_requests;
+      CHECK_ERR(vx_mpm_query(hdevice, VX_CSR_MPM_PREFETCH_REQ, core_id, &prefetch_requests), {
+        return err;
+      });
+      uint64_t prefetch_unused;
+      CHECK_ERR(vx_mpm_query(hdevice, VX_CSR_MPM_PREFETCH_UNUSED, core_id, &prefetch_unused), {
+        return err;
+      });
+      uint64_t prefetch_late;
+      CHECK_ERR(vx_mpm_query(hdevice, VX_CSR_MPM_PREFETCH_LATE, core_id, &prefetch_late), {
+        return err;
+      });
+      fprintf(stream, "PERF: core%d: dcache prefetch requests=%lu\n", core_id, prefetch_requests);
+      fprintf(stream, "PERF: core%d: dcache prefetch unused=%lu\n", core_id, prefetch_unused);
+      fprintf(stream, "PERF: core%d: dcache prefetch late=%lu\n", core_id, prefetch_late);
     }
 
     // Accumulate totals for all cores

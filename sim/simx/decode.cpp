@@ -1145,22 +1145,22 @@ void Emulator::decode(uint32_t code, uint32_t wid, uint64_t uuid) {
     } break;
 
 #endif
+    case 5: { // SOFTWARE PREFETCH
+      auto instr = std::allocate_shared<Instr>(instr_pool_, uuid, FUType::LSU);
+      switch (funct3) {
+      case 0:                                // PREFETCH
+        instr->setOpType(LsuType::PREFETCH); // Make sure it is set to PREFETCH
+        instr->setArgs(IntrLsuArgs{0, 0, 0});
+        instr->setSrcReg(0, rs1, RegType::Integer);
+        break;
+      default:
+        std::abort();
+      }
+      ibuffer.push_back(instr);
+    } break;
     default:
       std::abort();
     }
-  } break;
-  case 5: { // SOFTWARE PREFETCH
-    auto instr = std::allocate_shared<Instr>(instr_pool_, uuid, FUType::LSU);
-    switch (funct3) {
-    case 0:                                // PREFETCH
-      instr->setOpType(LsuType::PREFETCH); // Make sure it is set to PREFETCH
-      instr->setArgs(IntrLsuArgs{0, 0, 0});
-      instr->setSrcReg(0, rs1, RegType::Integer);
-      break;
-    default:
-      std::abort();
-    }
-    ibuffer.push_back(instr);
   } break;
   default:
     std::abort();
